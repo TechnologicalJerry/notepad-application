@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import {
   ClassSerializerInterceptor,
   Logger,
+  RequestMethod,
   ValidationPipe,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -18,7 +19,9 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3000);
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', {
+    exclude: [{ path: 'healthcheck', method: RequestMethod.GET }],
+  });
   app.use(helmet());
   app.use(compression());
   app.use(cookieParser());
