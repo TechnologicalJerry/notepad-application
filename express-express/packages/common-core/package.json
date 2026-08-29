@@ -1,0 +1,22 @@
+{
+  "name": "@notepad/common-core",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "private": true,
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "tsc -b --clean"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pino": "^7.11.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^16.18.124",
+    "pino-pretty": "^7.6.1",
+    "typescript": "^5.4.5"
+  }
+}
