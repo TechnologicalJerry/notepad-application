@@ -1,12 +1,23 @@
 {
   "name": "dart-flutter-express-mongo",
   "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "services/*"
+  ],
   "main": "index.js",
   "author": "TechnoJerry",
   "license": "MIT",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "tsc"
+    "build": "tsc -b",
+    "clean": "tsc -b --clean",
+    "dev:gateway": "npm run dev --workspace=services/api-gateway",
+    "dev:auth": "npm run dev --workspace=services/auth-service",
+    "dev:note": "npm run dev --workspace=services/note-service",
+    "dev:org": "npm run dev --workspace=services/organization-service",
+    "dev:collab": "npm run dev --workspace=services/collaboration-service"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
