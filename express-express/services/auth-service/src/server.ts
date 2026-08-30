@@ -1,21 +1,18 @@
 import { app, logger } from "./app";
-import { validateEnv, baseEnvSchema, createPortSchema } from "@notepad/common-core";
-import { z } from "zod";
+import { validateEnv } from "@notepad/common-core";
+import { authEnvSchema } from "./config/env.schema";
+import connect from "./utils/connect";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const envSchema = baseEnvSchema.extend({
-  PORT: createPortSchema(5001),
-  SERVICE_NAME: z.string().default("auth-service"),
-});
-
-const env = validateEnv(envSchema);
+const env = validateEnv(authEnvSchema);
 
 process.env.SERVICE_NAME = env.SERVICE_NAME;
 
-const server = app.listen(env.PORT, () => {
+const server = app.listen(env.PORT, async () => {
   logger.info(`🚀 ${env.SERVICE_NAME} running on port ${env.PORT} in ${env.NODE_ENV} mode`);
+  await connect(env.MONGO_AUTH_URI);
 });
 
 const shutdown = () => {
