@@ -1,16 +1,11 @@
 import { app, logger } from "./app";
-import { validateEnv, baseEnvSchema, createPortSchema } from "@notepad/common-core";
-import { z } from "zod";
+import { validateEnv } from "@notepad/common-core";
+import { gatewayEnvSchema } from "./config/env.schema";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const envSchema = baseEnvSchema.extend({
-  PORT: createPortSchema(5000),
-  SERVICE_NAME: z.string().default("api-gateway"),
-});
-
-const env = validateEnv(envSchema);
+const env = validateEnv(gatewayEnvSchema);
 
 // Set service name in env for Logger usage if not present
 process.env.SERVICE_NAME = env.SERVICE_NAME;
