@@ -1,10 +1,4 @@
-export interface UserPayload {
-  id: string;
-  email: string;
-  name: string;
-  roles?: string[];
-  organizationId?: string;
-}
+export * from "./auth.types";
 
 export interface ApiResponse<T = any> {
   success: boolean;
