@@ -1,11 +1,17 @@
 import express from "express";
-import { correlationIdMiddleware, createErrorHandler, createLogger } from "@notepad/common-core";
+import {
+  correlationIdMiddleware,
+  createErrorHandler,
+  createLogger,
+  deserializeUser,
+} from "@notepad/common-core";
 
 const app = express();
 const logger = createLogger(process.env.SERVICE_NAME || "organization-service");
 
 app.use(express.json());
 app.use(correlationIdMiddleware);
+app.use(deserializeUser);
 
 // Health check routes
 app.get("/healthz", (req, res) => {
