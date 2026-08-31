@@ -5,6 +5,7 @@ import {
   createLogger,
   deserializeUser,
 } from "@notepad/common-core";
+import routes from "./routes";
 
 const app = express();
 const logger = createLogger(process.env.SERVICE_NAME || "organization-service");
@@ -22,13 +23,8 @@ app.get("/readyz", (req, res) => {
   res.status(200).json({ success: true, status: "READY" });
 });
 
-// Base API route
-app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: `Welcome to ${process.env.SERVICE_NAME || "organization-service"}`,
-  });
-});
+// Configure API routes
+routes(app);
 
 // Register common error handler
 app.use(createErrorHandler(logger as any));
