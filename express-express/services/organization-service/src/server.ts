@@ -1,21 +1,23 @@
 import { app, logger } from "./app";
-import { validateEnv, baseEnvSchema, createPortSchema } from "@notepad/common-core";
-import { z } from "zod";
+import { validateEnv, setPublicKey } from "@notepad/common-core";
+import { organizationEnvSchema } from "./config/env.schema";
+import connect from "./utils/connect";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const envSchema = baseEnvSchema.extend({
-  PORT: createPortSchema(5003),
-  SERVICE_NAME: z.string().default("organization-service"),
-});
-
-const env = validateEnv(envSchema);
+const env = validateEnv(organizationEnvSchema);
 
 process.env.SERVICE_NAME = env.SERVICE_NAME;
 
-const server = app.listen(env.PORT, () => {
+// Seed public key if provided in environment
+if (env.ACCESS_TOKEN_PUBLIC_KEY) {
+  setPublicKey(env.ACCESS_TOKEN_PUBLIC_KEY);
+}
+
+const server = app.listen(env.PORT, async () => {
   logger.info(`🚀 ${env.SERVICE_NAME} running on port ${env.PORT} in ${env.NODE_ENV} mode`);
+  await connect(env.MONGO_ORGANIZATION_URI);
 });
 
 const shutdown = () => {
