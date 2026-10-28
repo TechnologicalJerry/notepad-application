@@ -1,38 +1,47 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { StatusCodes } from "http-status-codes";
-import { JwtPayload } from "jsonwebtoken";
 import { verifyAccessToken } from "./jwt";
+import { UnauthorizedError } from "../utils/app-error";
 
-declare module "fastify" {
-  interface FastifyRequest {
-    userId?: string;
-  }
-}
-
-export const requireAuth = async (request: FastifyRequest, reply: FastifyReply) => {
+export const requireAuth = async (request: FastifyRequest, _reply: FastifyReply) => {
   const authHeader = request.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return reply
-      .code(StatusCodes.UNAUTHORIZED)
-      .send({ message: "Unauthorized access" });
+    throw new UnauthorizedError("Authorization token is missing or malformed");
   }
 
-  const token = authHeader.split(" ")[1];
+  const token = authHeader.substring(7).trim();
 
   try {
-    const payload = verifyAccessToken(token) as JwtPayload;
+    const payload = verifyAccessToken(token);
 
-    if (!payload?.userId || typeof payload.userId !== "string") {
-      return reply
-        .code(StatusCodes.UNAUTHORIZED)
-        .send({ message: "Unauthorized access" });
+    if (!payload?.userId) {
+      throw new UnauthorizedError("Invalid token payload");
     }
 
+    request.user = payload;
+    request.userId = payload.userId;
+  } catch (err: any) {
+    if (err.name === "TokenExpiredError") {
+      throw new UnauthorizedError("Access token has expired");
+    }
+    throw new UnauthorizedError("Invalid access token");
+  }
+};
+
+export const optionalAuth = async (request: FastifyRequest, _reply: FastifyReply) => {
+  const authHeader = request.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return;
+  }
+
+  const token = authHeader.substring(7).trim();
+
+  try {
+    const payload = verifyAccessToken(token);
+    request.user = payload;
     request.userId = payload.userId;
   } catch {
-    return reply
-      .code(StatusCodes.UNAUTHORIZED)
-      .send({ message: "Unauthorized access" });
+    // Ignore error for optional authentication
   }
 };
