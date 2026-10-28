@@ -1,103 +1,111 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { StatusCodes } from "http-status-codes";
+import mongoose from "mongoose";
 import { Todo } from "../models/todo.model";
+import { createTodoSchema, updateTodoSchema, todoIdParamSchema } from "../schemas/todo.schema";
+import { ConflictError, NotFoundError, UnauthorizedError } from "../utils/app-error";
 
 class TodoController {
   createTodo = async (request: FastifyRequest, reply: FastifyReply) => {
-    const { title, body, category, subCategory } = request.body as {
-      title?: string;
-      body?: string;
-      category?: string;
-      subCategory?: string;
-    };
+    const userId = request.user?.userId;
+    if (!userId) throw new UnauthorizedError("Unauthorized");
 
-    if (!title || !body || !category || !subCategory) {
-      return reply.code(StatusCodes.BAD_REQUEST).send({
-        msg: "Title, Body, Category, and SubCategory must be provided.",
-      });
+    const input = createTodoSchema.parse(request.body);
+
+    const existingTodo = await Todo.findOne({
+      userId: new mongoose.Types.ObjectId(userId),
+      title: input.title,
+    });
+
+    if (existingTodo) {
+      throw new ConflictError("A todo with this title already exists.");
     }
 
-    try {
-      const existingTodo = await Todo.findOne({ title });
-      if (existingTodo) {
-        return reply.code(StatusCodes.CONFLICT).send({
-          msg: "A todo with this title already exists.",
-        });
-      }
+    const newTodo = await Todo.create({
+      ...input,
+      userId: new mongoose.Types.ObjectId(userId),
+    });
 
-      const newTodo = await Todo.create({ title, body, category, subCategory });
-
-      return reply.code(StatusCodes.CREATED).send({
-        todo: newTodo,
-        msg: "Todo has been created!",
-      });
-    } catch (error) {
-      request.log.error(error);
-      return reply.code(StatusCodes.INTERNAL_SERVER_ERROR).send({
-        msg: "Error creating todo.",
-      });
-    }
+    return reply.status(StatusCodes.CREATED).send({
+      success: true,
+      message: "Todo created successfully!",
+      todo: newTodo,
+    });
   };
 
-  getTodos = async (_request: FastifyRequest, reply: FastifyReply) => {
-    const todos = await Todo.find({}).sort("-createdAt");
+  getTodos = async (request: FastifyRequest, reply: FastifyReply) => {
+    const userId = request.user?.userId;
+    if (!userId) throw new UnauthorizedError("Unauthorized");
 
-    if (todos.length === 0) {
-      return reply
-        .code(StatusCodes.NOT_FOUND)
-        .send({ msg: "Todo list is empty!" });
-    }
+    const todos = await Todo.find({ userId: new mongoose.Types.ObjectId(userId) }).sort("-createdAt");
 
-    return reply
-      .code(StatusCodes.OK)
-      .send({ todos, msg: "All Todos have been fetched!" });
+    return reply.status(StatusCodes.OK).send({
+      success: true,
+      todos,
+      msg: "All Todos have been fetched!",
+    });
   };
 
   getSingleTodo = async (request: FastifyRequest, reply: FastifyReply) => {
-    const { id } = request.params as { id: string };
-    const todo = await Todo.findById({ _id: id });
+    const userId = request.user?.userId;
+    if (!userId) throw new UnauthorizedError("Unauthorized");
+
+    const { id } = todoIdParamSchema.parse(request.params);
+    const todo = await Todo.findOne({ _id: id, userId });
 
     if (!todo) {
-      return reply
-        .code(StatusCodes.NOT_FOUND)
-        .send({ msg: "Requested todo not found!" });
+      throw new NotFoundError("Requested todo not found!");
     }
 
-    return reply.code(StatusCodes.OK).send({ todo, msg: "Success" });
+    return reply.status(StatusCodes.OK).send({
+      success: true,
+      todo,
+      msg: "Success",
+    });
   };
 
   updateTodo = async (request: FastifyRequest, reply: FastifyReply) => {
-    const { id } = request.params as { id: string };
-    const payload = request.body as Record<string, unknown>;
-    const updatedTodo = await Todo.findByIdAndUpdate({ _id: id }, payload, {
-      new: true,
-    });
+    const userId = request.user?.userId;
+    if (!userId) throw new UnauthorizedError("Unauthorized");
+
+    const { id } = todoIdParamSchema.parse(request.params);
+    const input = updateTodoSchema.parse(request.body);
+
+    const updatedTodo = await Todo.findOneAndUpdate(
+      { _id: id, userId },
+      { $set: input },
+      { new: true, runValidators: true }
+    );
 
     if (!updatedTodo) {
-      return reply
-        .code(StatusCodes.NOT_FOUND)
-        .send({ msg: "Requested todo not found!" });
+      throw new NotFoundError("Requested todo not found!");
     }
 
-    return reply
-      .code(StatusCodes.OK)
-      .send({ todo: updatedTodo, msg: "Todo has been updated" });
+    return reply.status(StatusCodes.OK).send({
+      success: true,
+      todo: updatedTodo,
+      msg: "Todo has been updated",
+    });
   };
 
   deleteTodo = async (request: FastifyRequest, reply: FastifyReply) => {
-    const { id } = request.params as { id: string };
-    const deletedTodo = await Todo.findByIdAndDelete({ _id: id });
+    const userId = request.user?.userId;
+    if (!userId) throw new UnauthorizedError("Unauthorized");
+
+    const { id } = todoIdParamSchema.parse(request.params);
+    const deletedTodo = await Todo.findOneAndDelete({ _id: id, userId });
 
     if (!deletedTodo) {
-      return reply
-        .code(StatusCodes.NOT_FOUND)
-        .send({ msg: "Requested todo not found!" });
+      throw new NotFoundError("Requested todo not found!");
     }
 
-    return reply
-      .code(StatusCodes.OK)
-      .send({ todo: deletedTodo, msg: "Todo has been deleted" });
+    return reply.status(StatusCodes.OK).send({
+      success: true,
+      todo: deletedTodo,
+      msg: "Todo has been deleted",
+    });
   };
 }
 
 export const todoController = new TodoController();
+export default todoController;
