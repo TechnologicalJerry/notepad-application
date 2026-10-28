@@ -1,23 +1,25 @@
-import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
+import jwt, { SignOptions } from "jsonwebtoken";
+import { env } from "../config/env.config";
+import { UserPayload } from "../types";
 
-dotenv.config();
-
-const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "access_secret";
-const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "refresh_secret";
-
-export const generateAccessToken = (userId: string) => {
-  return jwt.sign({ userId }, ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
+export const generateAccessToken = (payload: UserPayload, options?: SignOptions): string => {
+  return jwt.sign(payload, env.ACCESS_TOKEN_SECRET, {
+    expiresIn: env.ACCESS_TOKEN_TTL as any,
+    ...options,
+  });
 };
 
-export const generateRefreshToken = (userId: string) => {
-  return jwt.sign({ userId }, REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
+export const generateRefreshToken = (payload: UserPayload, options?: SignOptions): string => {
+  return jwt.sign(payload, env.REFRESH_TOKEN_SECRET, {
+    expiresIn: env.REFRESH_TOKEN_TTL as any,
+    ...options,
+  });
 };
 
-export const verifyAccessToken = (token: string) => {
-  return jwt.verify(token, ACCESS_TOKEN_SECRET);
+export const verifyAccessToken = (token: string): UserPayload => {
+  return jwt.verify(token, env.ACCESS_TOKEN_SECRET) as UserPayload;
 };
 
-export const verifyRefreshToken = (token: string) => {
-  return jwt.verify(token, REFRESH_TOKEN_SECRET);
+export const verifyRefreshToken = (token: string): UserPayload => {
+  return jwt.verify(token, env.REFRESH_TOKEN_SECRET) as UserPayload;
 };
